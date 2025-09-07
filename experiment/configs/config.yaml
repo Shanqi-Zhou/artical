@@ -1,0 +1,159 @@
+# 动态贝叶斯博弈模型复现配置文件
+# Strategic Commitment and Climate Trade Frictions
+
+# 实验元设置
+experiment:
+  name: "dynamic_bayesian_game_reproduction"
+  description: "复现绿色补贴与CBAM的动态贝叶斯博弈模型"
+  random_seed: 42
+  device: "cuda"  # auto, cuda, cpu
+  precision: "float32"  # float16, float32, float64
+  
+# GPU优化设置  
+gpu:
+  enable_cudnn_benchmark: true
+  enable_cudnn_deterministic: false
+  batch_size: 512  # 根据RTX 4060 8GB优化
+  memory_fraction: 0.8
+  allow_growth: true
+
+# 模型参数（基于论文Table 1）
+model_parameters:
+  # 市场需求参数
+  market:
+    a: 100.0          # 需求截距参数
+    b: 0.5            # 需求斜率参数
+    
+  # 企业初始成本和排放参数
+  firms:
+    # 出口企业(F_E)
+    exporting:
+      c_0: 10.0       # 初始边际成本
+      e_0: 2.0        # 初始单位排放
+      lambda_val: 0.3 # 成本降低效率参数
+      mu_val: 0.2     # 排放降低效率参数
+      gamma: 2.0      # 投资成本参数
+      
+    # 进口企业(F_I)  
+    importing:
+      c_0: 12.0       # 初始边际成本
+      e_0: 2.5        # 初始单位排放
+      lambda_val: 0.25 # 成本降低效率参数
+      mu_val: 0.15    # 排放降低效率参数
+      gamma: 2.5      # 投资成本参数
+      
+  # 政府类型参数
+  government_types:
+    theta_L: 0.05     # 高承诺类型(低终止概率)
+    theta_H: 0.6      # 低承诺类型(高终止概率)
+    
+  # 行为摩擦参数
+  behavioral_frictions:
+    epsilon: 0.3      # 认知偏误参数
+    eta: 0.8          # 声誉衰减因子
+    
+  # 其他关键参数
+  other:
+    beta: 0.9         # 时间贴现因子
+    alpha: 0.1        # 出口国环境偏好权重
+    phi: 1.5          # 进口国碳边际社会成本
+    delta: 0.5        # 国内环境监管成本
+    F: 50.0           # FDI固定成本
+
+# 仿真设置
+simulation:
+  # 蒙特卡洛设置
+  monte_carlo:
+    num_runs: 20              # 独立运行次数
+    periods: 30               # 模拟期数
+    convergence_threshold: 1e-6
+    max_iterations: 1000
+    
+  # 初始条件
+  initial_conditions:
+    p_0: 0.5                  # 初始信念
+    s_0: 0.3                  # 初始补贴强度
+    tau_0: 0.2                # 初始关税率
+    
+  # 网格搜索参数
+  grid_search:
+    belief_points: 100        # 信念网格点数
+    policy_points: 50         # 政策网格点数
+    
+# 敏感性分析参数
+sensitivity_analysis:
+  # 认知偏误敏感性
+  epsilon_range: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+  
+  # 声誉衰减敏感性  
+  eta_range: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+  
+  # 承诺类型敏感性
+  theta_H_range: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+  
+  # 贴现因子敏感性
+  beta_range: [0.8, 0.85, 0.9, 0.95]
+
+# 求解器设置
+solvers:
+  # Perfect Bayesian Equilibrium求解器
+  pbe_solver:
+    method: "backward_induction"
+    tolerance: 1e-8
+    max_iterations: 500
+    
+  # Cournot-Nash均衡求解器
+  cournot_solver:
+    method: "fixed_point_iteration"
+    tolerance: 1e-8
+    max_iterations: 100
+    
+  # 动态规划求解器
+  dynamic_programming:
+    value_function_tolerance: 1e-6
+    policy_function_tolerance: 1e-6
+    max_iterations: 1000
+
+# 数据输出设置
+output:
+  # 结果保存
+  save_results: true
+  results_dir: "results"
+  
+  # 日志设置
+  logging:
+    level: "INFO"
+    save_logs: true
+    log_dir: "logs"
+    
+  # 可视化设置
+  visualization:
+    save_figures: true
+    figure_format: "png"
+    figure_dpi: 300
+    figure_dir: "results/figures"
+    
+  # 数据导出
+  export:
+    save_raw_data: true
+    data_format: "h5"  # h5, csv, pkl
+    data_dir: "data"
+
+# 验证设置
+validation:
+  # 理论对比验证
+  theoretical_comparison: true
+  target_r_squared: 0.96
+  
+  # 数值精度验证
+  numerical_precision: 1e-6
+  
+  # 收敛性验证
+  convergence_checks: true
+
+# 参数修改跟踪设置
+parameter_tracking:
+  enable: true
+  track_file: "logs/parameter_changes.json"
+  track_reasons: true
+  track_impacts: true
